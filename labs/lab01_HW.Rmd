@@ -1,0 +1,161 @@
+---
+title: "Lab 1"
+author: "Your Name Here"
+output: pdf_document
+date: "11:59PM February 9, 2019"
+---
+
+You should have RStudio installed to edit this file. You will write code in places marked "TO-DO" to complete the problems. Some of this will be a pure programming assignment. The tools for the solutions to these problems can be found in the class practice lectures. I want you to use the methods I taught you, not for you to google and come up with whatever works. You won't learn that way.
+
+To "hand in" the homework, you should compile or publish this file into a PDF that includes output of your code. Once it's done, push by the deadline to your repository in a directory called "labs".
+
+* Print out the numerical constant pi with ten digits after the decimal point using the internal constant `pi`.
+
+```{r}
+#TO-DO
+pi
+options(digits=11)
+```
+
+* Sum up the first 100 terms of the series 1 + 1/2 + 1/4 + 1/8 + ...
+
+```{r}
+#TO-DO
+sum((1/2)^(0:99))
+```
+
+* Find the product of the first 100 terms of `1 * 1/2 * 1/4 * 1/8 *` ...
+
+```{r}
+#TO-DO
+prod((1/2)^(0:99))
+```
+
+
+* Find the product of the first 500 terms of `1 * 1/2 * 1/4 * 1/8 *` ... Answer in English: is this answer correct? 
+
+```{r}
+#TO-DO
+prod((1/2)^(0:499))
+#No, this answer is not correct. It must be nonzero.
+```
+
+* Figure out a means to express the answer more exactly. Not compute exactly, but express more exactly.
+
+```{r}
+#TO-DO
+#(1/2)^(sum(0:499))
+#The powers add for multiplication of the same base, so that the final product is the sum of all of the powers from 0 to 499 (the alst term)
+```
+
+
+* Use the left rectangle method to numerically integrate x^2 from 0 to 1 with rectangle size 1e-6.
+
+```{r}
+#TO-DO
+((1e-6)*sum(seq(0,1,by=1e-6)^2))
+#delta-x (1e^-6) is constant so it comes out of the Riemann sum
+```
+
+
+* Calculate the average of 100 realizations of standard Bernoullis in one line using the `sample` function.
+
+```{r}
+#TO-DO
+sum(sample(0:1, 100, replace = TRUE, c(0.5,0.5)))/100
+```
+
+
+* Calculate the average of 500 realizations of Bernoullis with p = 0.9 in one line using the `sample` function.
+
+```{r}
+#TO-DO
+sum(sample(0:1, 500, replace = TRUE, c(0.1,0.9)))/500
+
+```
+
+
+* Calculate the average of 1000 realizations of Bernoullis with p = 0.9 in one line using `rbinom`.
+
+```{r}
+#TO-DO
+sum(rbinom(1000, 1, p = 0.9))/1000
+```
+
+* Use the `strsplit` function and `sample` to put the sentences below in random order.
+
+```{r}
+lorem = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi posuere varius volutpat. Morbi faucibus ligula id massa ultricies viverra. Donec vehicula sagittis nisi non semper. Donec at tempor erat. Integer dapibus mi lectus, eu posuere arcu ultricies in. Cras suscipit id nibh lacinia elementum. Curabitur est augue, congue eget quam in, scelerisque semper magna. Aenean nulla ante, iaculis sed vehicula ac, finibus vel arcu. Mauris at sodales augue. "
+#TO-DO
+paste(paste(sample((strsplit(lorem, "[.] "))[[1]][1:10]), collapse= ". "), ". ", sep = "")
+# split by periods, access list element and sample from the 10 sentence vectors and then paste sentences back with periods
+
+```
+
+* In class we generated the variable criminality with levels "none", "infraction", "misdimeanor" and "felony". Create a variable `x_2` here with 100 random elements (equally probable) and ensure the proper ordinal ordering.
+
+```{r}
+#TO-DO
+Crim = c("none", "infraction", "misdemeanor", "felony")
+CrimFactor = factor(Crim, ordered = T, levels = c("none", "infraction", "misdemeanor", "felony"))
+x_2 = sample(CrimFactor, 100, replace = T)
+```
+
+* Convert this variable to binary where 0 is no crime and 1 is any crime. Answer in English: is this the proper binary threshold?
+
+```{r}
+#TO-DO
+x_2 = sample(factor(sample(c("0", "1"), 100, replace = T), ordered = T))
+#This is probably not the best threshold, as we would like more details as to the severity of the crime i.e differentiating between shoplifting and first-degree murder.
+```
+
+* Convert this variable to an unordered, nominal factor variable.
+
+```{r}
+x_2 = factor(as.numeric(levels(x_2)[x_2]) )
+```
+
+* Convert this variable into three binary variables without any information loss and put them into a data matrix.
+
+```{r}
+#TO-DO
+x_3 = sample(factor(as.numeric(levels(x_2)[x_2])))
+x_4 = sample(factor(as.numeric(levels(x_2)[x_2])))
+newmat = matrix(c(as.numeric(levels(x_2)[x_2]), as.numeric(levels(x_3)[x_3]), as.numeric(levels(x_4)[x_4])), 100, 3)
+newmat
+```
+
+* What should the sum of each row be (in English)? Verify that. 
+
+
+```{r}
+#TO-DO
+#The row sum is the number of crimes committed by the first person in each of the three iterations
+sum(newmat[1,1:3])
+```
+
+* How should the column sum look (in English)? Verify that.
+
+
+```{r}
+#TO-DO
+#The column sum is the number of crimes committed among the 100 individuals
+sum(newmat[1:100,1])
+```
+
+* Generate a matrix with 100 rows where the first column is realization from a normal with mean 17 and variance 38, the second column is uniform between -10 and 10, the third column is poisson with mean 6, the fourth column in exponential with lambda of 9, the fifth column is binomial with n = 20 and p = 0.12 and the sixth column is a binary variable with 24% 1's.
+
+
+```{r}
+#TO-DO
+X = matrix(c(rnorm(100, 17, 38), runif(100, -10, 10), rpois(100, 6), rexp(100, 9), rbinom(100, 20, 0.12), sample(rep(c(0,1),c(76,24)))), 100, 6)
+```
+
+
+
+
+
+
+
+
+
