@@ -1,0 +1,220 @@
+---
+title: "Lab 6"
+author: "Sakib Salim"
+output: pdf_document
+date: "11:59PM March 24, 2019"
+---
+
+Load the Boston Housing data and create the vector $y$ and the design matrix $X$.
+
+```{r}
+data(Boston, package = "MASS")
+y = Boston$medv
+X = rep(1, nrow(Boston))
+X = as.matrix(cbind(X, Boston[, 1 : 13]))
+```
+
+Find the OLS estimate and OLS predictions without using `lm`.
+
+```{r}
+b = solve(t(X) %*% X) %*% t(X) %*% y
+yhat = X %*% b
+```
+
+Write a function spec'd as follows:
+
+```{r}
+#' Orthogonal Projection
+#'
+#' Projects vector a onto v.
+#'
+#' @param a   the vector to project
+#' @param v   the vector projected onto
+#'
+#' @returns   a list of two vectors, the orthogonal projection parallel to v named a_parallel, 
+#'            and the orthogonal error orthogonal to v called a_perpendicular
+orthogonal_projection = function(a, v){
+  a_parallel = (v %*% t(v) %*% a) / ( sum(v^2) )
+  a_perpendicular = a - a_parallel
+  list("a_parallel" = a_parallel, "a_perpendicular" = a_perpendicular)
+}
+
+```
+
+
+Try to project onto the column space of $X$ by projecting $y$ on each vector of $X$ individually and adding up the projections. You can use the function `orthogonal_projection`.
+
+```{r}
+sumOrthProj = rep(0, nrow(X))
+for (j in 1 : ncol(X)){
+  sumOrthProj = sumOrthProj + orthogonal_projection(y, X[, j])$a_parallel
+  }
+head(sumOrthProj)
+```
+
+How much double counting occurred? Measure the magnitude relative to the true LS orthogonal projection.
+
+```{r}
+doublecount = sumOrthProj / yhat
+head(doublecount)
+```
+
+Convert $X$ into $Q$ where $Q$ has the same column space as $X$ but has orthogonal columns. You can use the function `orthogonal_projection`. This is essentially gram-schmidt.
+
+```{r}
+Q = matrix(NA, nrow = nrow(X), ncol = ncol(X))
+Q[, 1] = X[, 1]
+for(j in 2 : ncol(X)){
+  Q[ , j] = X[ , j]
+  
+  for(j0 in 1 : (j - 1)){
+    Q[ , j] = Q[ , j] - (orthogonal_projection(X[ , j], Q[ , j0])$a_parallel)
+  }
+}
+pacman::p_load(Matrix)
+rankMatrix(Q)[1]
+```
+
+Make $Q$'s columns orthonormal.
+
+```{r}
+for (j in 1 : ncol(Q)){
+  Q[ ,j] = Q[ , j] / sqrt(sum(Q[ ,j]^2)) 
+}
+```
+
+Verify $Q^T$ is the inverse of $Q$.
+
+```{r}
+#TO-DO
+head(t(Q) %*% Q)
+```
+
+
+Project $Y$ onto $Q$ and verify it is the same as the OLS fit.
+
+```{r}
+head(cbind(Q %*% t(Q) %*% y, yhat))
+```
+
+
+Project $Y$ onto the columns of $Q$ one by one and verify it sums to be the projection onto the whole space.
+
+```{r}
+#TO-DO
+proj_col_Q = rep(0,ncol(Q))
+for (j in 1 : ncol(Q)){
+  proj_col_Q = proj_col_Q + orthogonal_projection(y, Q[, j])$a_parallel
+}
+proj_Q = Q %*% t(Q) %*% y
+pacman::p_load(testthat)
+expect_equal(proj_col_Q, proj_Q)
+```
+
+Verify the OLS fit squared length is the sum of squared lengths of each of the orthogonal projections.
+
+```{r}
+#TO-DO
+sum_sq_length_col_Q = 0
+for (j in 1 : ncol(Q)){
+  col_proj = orthogonal_projection(y, Q[, j])$a_parallel
+  sum_sq_length_col_Q = sum_sq_length_col_Q + sum(col_proj^2)
+}
+OLS_sq_length = sum(proj_Q^2)
+expect_equal(sum_sq_length_col_Q, OLS_sq_length)
+```
+
+Rewrite the "The monotonicity of SSR" demo from the lec06 notes but instead do it for RMSE. Comment every line in detail. Write about what the plots means.
+
+```{r}
+#TO-DO
+n = 100
+y = rnorm(n)
+Rmses = array(NA, n) #array to store RMSE values
+
+#Create data matrix
+X = matrix(NA, nrow = n, ncol = 0)
+
+#for every new p, add a random column
+for (p_plus_one in 1 : n){          #loop through eventual columns of X
+  X = cbind(X, rnorm(n))            #add a random column
+  Rmses[p_plus_one] = summary(lm(y ~ X))$sigma  #find RMSE
+}
+pacman::p_load(ggplot2)
+base = ggplot(data.frame(p_plus_one = 1 : n, RMSE = Rmses))
+base + geom_line(aes(x = p_plus_one, y = RMSE))
+#The RMSE value decreases as we add columns to our data.
+#Eventually R^2 approaches 1 which in turn makes RMSE = 0.
+```
+
+Rewrite the "Overfitting" demo from the lec06 notes. Comment every line in detail. Write about what the plots means.
+
+```{r}
+#TO-DO
+bbeta = c(1, 2, 3, 4)   #the real betas
+
+#build training data
+n = 100
+X = cbind(1, rnorm(n), rnorm(n), rnorm(n)) #Intercept plus 3 random columns
+y = X %*% bbeta + rnorm(n, 0, 0.3) #ma
+
+#build test data
+n_star = 100
+X_star = cbind(1, rnorm(n), rnorm(n), rnorm(n_star))
+y_star = X_star %*% bbeta + rnorm(n, 0, 0.3)
+
+#store the betas each time you model on 
+#a design matrix with p+1 columns
+all_betas = matrix(NA, n, n)
+all_betas[4, 1 : 4] = coef(lm(y ~ 0 + X)) #fourth row of beta matrix are the 
+#beta values from when we had 4 columns in X
+in_sample_rmse_by_p = array(NA, n)        #Store In Sample RMSE
+for (j in 5 : n){
+  X = cbind(X, rnorm(n))                  #add a random column to X
+  lm_mod = lm(y ~ 0 + X)                  #new linear model w/o intercept
+  
+  all_betas[j, 1 : j] = coef(lm_mod)      #add betas to the beta matrix in the 
+  #appropriate column (for j columns add them to the jth column of beta matrix)
+  
+  y_hat = X %*% all_betas[j, 1 : j]                   #produce a prediction our 
+  #new model(using new betas)
+  
+  in_sample_rmse_by_p[j] = sqrt(sum((y - y_hat)^2))   #calculate RMSE for the 
+  #prediction of "each new linear model"
+}
+plot(1 : n, in_sample_rmse_by_p)
+#RMSE decreases as the columns of 
+#our design matrix approach n
+#not honest, since we are just testing on given data,
+#so eventually our model passes through every point in our data
+
+head(all_betas[4 : n, 1 : 4]) #take the first four betas for each of our models
+b_error_by_p = rowSums((all_betas[, 1 : 4] - matrix(rep(bbeta, n), nrow = n, byrow = TRUE))^2) 
+
+#compare the model betas to the real betas
+plot(1 : n, b_error_by_p)
+#our betas degenerate as the number of columns approaches n
+
+#look at out of sample error in the case of only the first four features
+oos_rmse_by_p = array(NA, n)    #store oosRMSE
+for (j in 4 : n){
+  y_hat_star = X_star %*% all_betas[j, 1 : 4]    
+  #predict on the data using the betas from "first four columns of Xstar" 
+  oos_rmse_by_p[j] = sqrt(sum((y_star - y_hat_star)^2)) #calculate RMSE
+}
+plot(1 : n, oos_rmse_by_p)
+
+#look at out of sample error 
+#in the case of the random features too
+oos_rmse_by_p = array(NA, n)
+for (j in 5 : n){
+  X_star = cbind(X_star, rnorm(n))            #again add a random column
+  y_hat_star = X_star %*% all_betas[j, 1 : j] #prediction
+  oos_rmse_by_p[j] = sqrt(sum((y_star - y_hat_star)^2)) #oosRMSE for when you add random columns
+}
+plot(1 : n, oos_rmse_by_p)
+#oosRMSE actually tests how well our model 
+#works on data outside of the given data
+#the predicting power of our model 
+#significantly decreases as we increase the columns of X
+```
